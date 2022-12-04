@@ -1,7 +1,7 @@
 from utilities.plotters import *
 
 def main():
-    plot_model()
+    plot_cod()
 
 
 if __name__ == '__main__':

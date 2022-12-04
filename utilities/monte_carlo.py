@@ -1,3 +1,8 @@
+import random
+from utilities.constants import *
+import numpy as np
+import matplotlib.pyplot as plt
+
 def dT_dt(t, T, t_max):
 
     dT_dt = ((1/rho_c_Z) * (gamma*(1-alpha_sky)*(1-alpha)*S_0 - transmissivity*SB*(T**4)) 
@@ -5,3 +10,43 @@ def dT_dt(t, T, t_max):
 
     return dT_dt
 
+def launch_particle():
+    position = []
+
+    s = np.array([0, 0, 0])
+    while np.count_nonzero(s) == 0:
+        s = np.random.normal(size=3)
+
+    x = r_hom*(s/np.linalg.norm(s))
+    v = get_velocity(m_H, T_hom)
+    dt = 1
+
+    r = np.sqrt(np.sum(x**2))
+    
+    alive = True
+    while alive:
+        position.append(r-r_V)
+
+        r = np.sqrt(np.sum(x**2))
+        g_vec = -(x/np.sqrt(np.sum(x**2)))*G*m_V/(r**2)
+        v += g_vec*dt
+        x += v*dt
+
+        if (r < r_V):
+            cod = "smash"
+            alive = False
+        elif (r > r_exo):
+            cod = "escape"
+            alive = False
+    
+    return position, cod
+
+def f(v, m, T):
+    return np.sqrt(m/(2*np.pi*k*T))*np.exp(-(m*(v**2))/(2*k*T))
+
+def get_velocity(m, T):
+    vels = np.linspace(0, 5000, 5000)
+    probs = f(vels, m, T)
+
+    out_vel = random.choices(vels, probs, k=3)
+    return out_vel
