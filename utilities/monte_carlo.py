@@ -12,6 +12,7 @@ def dT_dt(t, T, t_max):
 
 def launch_particle():
     position = []
+    max_dt = 10
 
     s = np.array([0, 0, 0])
     while np.count_nonzero(s) == 0:
@@ -19,16 +20,21 @@ def launch_particle():
 
     x = r_hom*(s/np.linalg.norm(s))
     v = get_velocity(m_H, T_hom)
-    dt = 1
-
-    r = np.sqrt(np.sum(x**2))
     
+    snaps = []
+
     alive = True
     while alive:
-        position.append(r-r_V)
-
         r = np.sqrt(np.sum(x**2))
+        position.append(r-r_V)
         g_vec = -(x/np.sqrt(np.sum(x**2)))*G*m_V/(r**2)
+
+        t_snap = get_snap_time()
+        dt = min([max_dt, t_snap])
+
+        if dt == t_snap:
+            snaps.append(r)
+
         v += g_vec*dt
         x += v*dt
 
@@ -39,14 +45,25 @@ def launch_particle():
             cod = "escape"
             alive = False
     
-    return position, cod
+    return position, cod, snaps
 
-def f(v, m, T):
+def t_snap_distribution(t_snap):
+    T_s = 500 # average lifetime
+    return (1/T_s)*np.exp(-t_snap/T_s)
+
+def get_snap_time():
+    t_snap = np.linspace(0, 5000, 5000)
+    probs = t_snap_distribution(t_snap)
+
+    out_t_snap = random.choices(t_snap, probs, k=1)
+    return out_t_snap[0]
+
+def v_distribution(v, m, T):
     return np.sqrt(m/(2*np.pi*k*T))*np.exp(-(m*(v**2))/(2*k*T))
 
 def get_velocity(m, T):
     vels = np.linspace(0, 5000, 5000)
-    probs = f(vels, m, T)
+    probs = v_distribution(vels, m, T)
 
     out_vel = random.choices(vels, probs, k=3)
     return out_vel
