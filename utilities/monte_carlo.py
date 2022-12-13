@@ -21,14 +21,29 @@ def perform_collision(m1, v1, r):
 
     p1 = m1*v1
     p2 = m2*v2
-    p_final = p1+p2
+
+    v_trans = -(p1+p2)/(m1+m2)
+
+    p1_COM = p1 + m1*v_trans
+    p2_COM = p2 + m2*v_trans
+
+    # get random direction
+    s = np.array([0, 0, 0])
+    while np.count_nonzero(s) == 0:
+        s = np.random.normal(size=3)
+    unit_vec = (s/np.linalg.norm(s))
+
+    p_final = np.sqrt(np.sum(p1_COM**2))*unit_vec - (m1*v_trans)
     v_final = p_final/m1
     return v_final
 
 def launch_particle():
     position = []
+    velocity = []
+    snaps_pos = []
+    snaps_vel = []
     collisions = 0
-    max_dt = 10
+    #max_dt = 10
 
     s = np.array([0, 0, 0])
     while np.count_nonzero(s) == 0:
@@ -36,36 +51,40 @@ def launch_particle():
 
     x = r_hom*(s/np.linalg.norm(s))
     v = get_velocity(m_H, T_hom)
-    
-    snaps = []
 
     alive = True
     while alive:
+        v_mag = np.sqrt(np.sum(v**2))
+        max_dt = 1000/v_mag
+
         r = np.sqrt(np.sum(x**2))
         position.append(r-r_V)
+        velocity.append(v_mag)
         g_vec = -(x/np.sqrt(np.sum(x**2)))*G*m_V/(r**2)
 
         t_snap = get_snap_time()
-        t_collision = get_collision_time(r-r_V, np.sqrt(np.sum(v**2)))
+        t_collision = get_collision_time(r-r_V, v_mag)
         dt = min([max_dt, t_snap, t_collision])
-
-        if dt == t_snap:
-            snaps.append(r)
-        elif dt == t_collision:
-            collisions += 1
-            v = perform_collision(m_H, v, r)
 
         v += g_vec*dt
         x += v*dt
 
+        if dt == t_snap:
+            snaps_pos.append(r)
+            snaps_vel.append(v_mag)
+        elif dt == t_collision:
+            collisions += 1
+            v = perform_collision(m_H, v, r)
+
         if (r < r_V):
             cod = "smash"
             alive = False
-        elif check_escape(r, v, m_H, d_H):
+        elif (r > r_V+6E5):
+            #elif check_escape(r, v, m_H, d_H):
             cod = "escape"
             alive = False
     
-    return position, cod, snaps, collisions
+    return position, velocity, cod, snaps_pos, snaps_vel, collisions
 
 def t_snap_distribution(t_snap):
     T_s = 500 # average lifetime
